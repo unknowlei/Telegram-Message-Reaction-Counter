@@ -350,7 +350,8 @@ class TelegramManager:
             # days == 0 表示全部消息，不设置日期限制
             
             # 获取消息 - 使用日期参数让 API 直接返回时间范围内的消息
-            limit = 10000  # 最多获取1万条
+            # 不设置上限，获取时间范围内的所有消息
+            limit = None  # 无限制
             
             def progress_callback(processed, valid):
                 self.task_progress['message'] = f'已处理 {processed} 条消息，有效 {valid} 条'
@@ -382,6 +383,8 @@ class TelegramManager:
                 sorted_messages = analyzer.sort_by_views()
             elif sort_by == 'engagement':
                 sorted_messages = analyzer.sort_by_engagement_rate()
+            elif sort_by == 'replies':
+                sorted_messages = analyzer.sort_by_replies()
             else:
                 sorted_messages = analyzer.sort_by_reactions()
             

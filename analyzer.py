@@ -89,6 +89,24 @@ class MessageAnalyzer:
         
         return self.sorted_messages
     
+    def sort_by_replies(self, reverse: bool = True) -> List[Dict[str, Any]]:
+        """
+        按回复数排序
+        
+        Args:
+            reverse: 是否降序排列
+            
+        Returns:
+            list: 排序后的消息列表
+        """
+        self.sorted_messages = sorted(
+            self.messages,
+            key=lambda x: x.get('replies', 0) or 0,
+            reverse=reverse
+        )
+        
+        return self.sorted_messages
+    
     def filter_by_media_type(
         self,
         media_types: List[str],

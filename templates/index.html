@@ -359,6 +359,7 @@
                         <select id="sort-select">
                             <option value="views" selected>按浏览量</option>
                             <option value="engagement">按互动率</option>
+                            <option value="replies">按回复数</option>
                         </select>
                         <p class="sort-hint hidden" id="sort-hint" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
                             💡 已选择表情，将优先按选中表情数量排序
@@ -926,6 +927,7 @@
                         <div class="message-meta">
                             <span>🔥 ${msg.total_reactions} 反应</span>
                             ${msg.views ? `<span>👁 ${msg.views} 浏览</span>` : ''}
+                            ${msg.replies ? `<span>💬 ${msg.replies} 回复</span>` : ''}
                             ${msg.selected_emoji_count ? `<span>🎯 选中表情: ${msg.selected_emoji_count}</span>` : ''}
                             ${msg.media && msg.media.type ? `<span>📎 ${msg.media.type}</span>` : ''}
                             <a href="${tgLink}" onclick="openTelegramLink(event, '${tgLink}', '${webLink}')" class="message-link">🔗 在Telegram中打开</a>

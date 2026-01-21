@@ -356,6 +356,7 @@ class TelegramFetcher:
                     'total_reactions': total_reactions,
                     'views': message.views,
                     'forwards': message.forwards,
+                    'replies': message.replies.replies if message.replies else 0,
                     'link': self._get_message_link(message.id),
                 }
                 
