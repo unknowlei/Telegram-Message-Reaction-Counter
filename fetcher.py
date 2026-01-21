@@ -272,7 +272,11 @@ class TelegramFetcher:
         Returns:
             list: 消息数据列表
         """
-        limit = limit or config.MAX_MESSAGES
+        # 如果 limit 为 None，则不限制消息数量
+        if limit is None:
+            limit = float('inf')  # 无限制
+        elif limit == 0:
+            limit = config.MAX_MESSAGES
         min_reactions = min_reactions if min_reactions is not None else config.MIN_REACTIONS
         media_only = media_only if media_only is not None else config.MEDIA_ONLY
         
@@ -301,7 +305,9 @@ class TelegramFetcher:
             # 使用 offset_date 参数让 Telegram API 从指定日期开始返回消息
             # Telegram 的 iter_messages 是倒序的（最新的消息先返回）
             # offset_date 是获取此日期之前的消息
-            async for message in self.client.iter_messages(self.channel, limit=limit, offset_date=end_date):
+            # 如果是无限制，则不传入 limit 参数
+            iter_limit = None if limit == float('inf') else limit
+            async for message in self.client.iter_messages(self.channel, limit=iter_limit, offset_date=end_date):
                 processed += 1
                 
                 # 更新进度条
