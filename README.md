@@ -14,7 +14,25 @@
 
 ## 🚀 快速开始
 
-### 1. 获取 Telegram API 凭证
+### Windows 用户（推荐）
+
+**双击 `start.bat` 即可一键启动！**
+
+首次运行会自动：
+1. ✅ 检查 Python 环境
+2. ✅ 创建虚拟环境
+3. ✅ 安装所有依赖
+4. ✅ 引导你获取并输入 Telegram API 凭证
+5. ✅ 启动 Web 应用并打开浏览器
+
+之后每次运行只需双击 `start.bat`，会自动启动并打开浏览器。
+
+### 手动安装
+
+<details>
+<summary>点击展开手动安装步骤</summary>
+
+#### 1. 获取 Telegram API 凭证
 
 1. 访问 [https://my.telegram.org](https://my.telegram.org)
 2. 使用你的手机号登录
@@ -22,7 +40,7 @@
 4. 填写应用信息并创建
 5. 记录获得的 `api_id` 和 `api_hash`
 
-### 2. 安装依赖
+#### 2. 安装依赖
 
 ```bash
 # 克隆项目
@@ -33,7 +51,7 @@ cd telegram-reaction-counter
 pip install -r requirements.txt
 ```
 
-### 3. 配置
+#### 3. 配置
 
 ```bash
 # 复制配置模板
@@ -44,13 +62,15 @@ cp config.example.py config.py
 # API_HASH = "你的API_HASH"
 ```
 
-### 4. 运行
+#### 4. 运行
 
 ```bash
 python web_app.py
 ```
 
 然后在浏览器中打开 [http://localhost:5000](http://localhost:5000)
+
+</details>
 
 ## 📱 使用方法
 
