@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Reaction Counter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #0088cc;
+            --primary-dark: #006699;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --danger: #dc3545;
+            --border: #e9ecef;
+            --text: #333;
+            --text-muted: #6c757d;
+        }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 40px 0 30px; color: white; }
+        .header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 20px; }
+        .card-header { display: flex; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .card-header h2 { font-size: 1.3rem; font-weight: 600; }
+        .card-header .icon { font-size: 1.5rem; margin-right: 12px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 8px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 10px; font-size: 1rem; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; }
+        .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: var(--secondary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-sm { padding: 8px 16px; font-size: 0.9rem; }
+        .login-steps { display: flex; gap: 20px; margin-bottom: 20px; }
+        .login-step { flex: 1; text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px; }
+        .login-step.active { background: #e8f4fd; border: 2px solid var(--primary); }
+        .login-step.completed { background: #d4edda; }
+        .login-step .step-number { width: 30px; height: 30px; background: var(--secondary); color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; margin-bottom: 8px; }
+        .login-step.active .step-number { background: var(--primary); }
+        .login-step.completed .step-number { background: var(--success); }
+        .saved-sessions { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .session-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; }
+        .session-info { display: flex; align-items: center; gap: 10px; }
+        .progress-container { margin: 20px 0; }
+        .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #667eea); transition: width 0.3s; }
+        .progress-text { margin-top: 8px; font-size: 0.9rem; color: var(--text-muted); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 12px; text-align: center; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; }
+        .stat-card .label { font-size: 0.9rem; opacity: 0.9; margin-top: 5px; }
+        .message-list { max-height: 600px; overflow-y: auto; }
+        .message-item { display: flex; gap: 15px; padding: 15px; border-bottom: 1px solid var(--border); }
+        .message-item:hover { background: #f8f9fa; }
+        .message-rank { font-size: 1.5rem; font-weight: 700; color: var(--primary); min-width: 40px; }
+        .message-content { flex: 1; }
+        .message-text { font-size: 0.95rem; margin-bottom: 8px; word-break: break-word; }
+        .message-meta { display: flex; flex-wrap: wrap; gap: 15px; font-size: 0.85rem; color: var(--text-muted); }
+        .message-reactions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .reaction-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #f0f0f0; border-radius: 20px; font-size: 0.85rem; }
+        .message-link { color: var(--primary); text-decoration: none; }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+        .spinner-sm { width: 20px; height: 20px; border-width: 2px; margin: 0; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .dialog-list { max-height: 350px; overflow-y: auto; }
+        .dialog-search { position: sticky; top: 0; background: white; padding: 10px 0; margin-bottom: 10px; }
+        .dialog-search input { width: 100%; padding: 10px 15px; border: 2px solid var(--border); border-radius: 8px; }
+        .dialog-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; cursor: pointer; }
+        .dialog-item:hover { background: #f0f0f0; }
+        .dialog-icon { font-size: 1.5rem; }
+        .dialog-name { flex: 1; font-weight: 500; }
+        .dialog-username { color: var(--text-muted); font-size: 0.85rem; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 5px; }
+        .tab { padding: 10px 20px; border: none; background: none; font-size: 1rem; font-weight: 500; color: var(--text-muted); cursor: pointer; border-radius: 8px 8px 0 0; }
+        .tab.active { color: var(--primary); background: rgba(0,136,204,0.1); }
+        .hidden { display: none !important; }
+        .emoji-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+        .emoji-stat { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #f8f9fa; border-radius: 8px; }
+        .export-section { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .alert { padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        .alert-info { background: #e8f4fd; color: #0c5460; }
+        .alert-warning { background: #fff3cd; color: #856404; }
+        .user-info { display: flex; align-items: center; gap: 15px; padding: 15px; background: #d4edda; border-radius: 10px; margin-bottom: 20px; }
+        .user-avatar { width: 50px; height: 50px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; }
+        .user-details { flex: 1; }
+        .user-name { font-weight: 600; font-size: 1.1rem; }
+        .user-phone { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* 表情选择器 */
+        .emoji-selector { margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px; }
+        .emoji-selector-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .emoji-selector-title { font-weight: 600; }
+        .emoji-grid { display: flex; flex-wrap: wrap; gap: 6px; max-height: 200px; overflow-y: auto; padding: 5px; }
+        .emoji-option { padding: 6px 10px; background: white; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 1.1rem; transition: all 0.2s; }
+        .emoji-option:hover { border-color: var(--primary); transform: scale(1.1); }
+        .emoji-option.selected { border-color: var(--primary); background: #e8f4fd; }
+        .emoji-history { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+        .emoji-history-title { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+
+        /* 时间选择器 */
+        .time-range-selector { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+        .time-preset { padding: 8px 16px; background: #f8f9fa; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+        .time-preset:hover { border-color: var(--primary); }
+        .time-preset.active { border-color: var(--primary); background: #e8f4fd; }
+        .custom-date-range { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+        .custom-date-range input[type="date"] { padding: 8px 12px; border: 2px solid var(--border); border-radius: 8px; }
+
+        /* 历史记录 */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+        .history-item:hover { background: #e8f4fd; }
+        .history-info { display: flex; flex-direction: column; gap: 4px; }
+        .history-channel { font-weight: 600; }
+        .history-date { font-size: 0.85rem; color: var(--text-muted); }
+        .history-stats { display: flex; align-items: center; gap: 15px; font-size: 0.9rem; color: var(--text-muted); }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .login-steps { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📊 Telegram Reaction Counter</h1>
+            <p>统计频道/群组消息反应，找出最热门的内容</p>
+        </header>
+
+        <!-- 登录区域 -->
+        <div class="card" id="login-section">
+            <div class="card-header">
+                <span class="icon">🔐</span>
+                <h2>登录 Telegram</h2>
+            </div>
+            
+            <div id="logged-in-view" class="hidden">
+                <div class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <div class="user-name" id="user-name">用户名</div>
+                        <div class="user-phone" id="user-phone">+86 ****</div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline btn-sm" onclick="switchAccount()">切换账号</button>
+                        <button class="btn btn-danger btn-sm" onclick="logout(false)">退出登录</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="login-view">
+                <div class="login-steps">
+                    <div class="login-step active" id="step-1">
+                        <div class="step-number">1</div>
+                        <div class="step-title">输入手机号</div>
+                    </div>
+                    <div class="login-step" id="step-2">
+                        <div class="step-number">2</div>
+                        <div class="step-title">输入验证码</div>
+                    </div>
+                    <div class="login-step" id="step-3">
+                        <div class="step-number">3</div>
+                        <div class="step-title">完成登录</div>
+                    </div>
+                </div>
+
+                <div id="phone-step">
+                    <div class="alert alert-info">
+                        💡 Telegram 使用手机号 + 验证码登录。验证码会发送到你的 Telegram 应用。
+                    </div>
+                    <div class="form-group">
+                        <label>手机号</label>
+                        <input type="tel" id="phone-input" placeholder="例如：+8613800138000">
+                    </div>
+                    <button class="btn btn-primary" id="btn-send-code" onclick="sendCode()">📱 发送验证码</button>
+                </div>
+
+                <div id="code-step" class="hidden">
+                    <div class="alert alert-warning">📩 验证码已发送到你的 Telegram 应用。</div>
+                    <div class="form-group">
+                        <label>验证码</label>
+                        <input type="text" id="code-input" placeholder="输入验证码" maxlength="10">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="btn-verify-code" onclick="verifyCode()">✓ 验证登录</button>
+                        <button class="btn btn-secondary" onclick="resetLogin()">重新输入</button>
+                    </div>
+                </div>
+
+                <div id="password-step" class="hidden">
+                    <div class="alert alert-warning">🔒 该账号启用了两步验证，请输入密码。</div>
+                    <div class="form-group">
+                        <label>两步验证密码</label>
+                        <input type="password" id="password-input" placeholder="输入密码">
+                    </div>
+                    <button class="btn btn-primary" onclick="verifyPassword()">✓ 验证密码</button>
+                </div>
+
+                <div class="saved-sessions" id="saved-sessions">
+                    <h4 style="margin-bottom: 15px;">📂 已保存的登录</h4>
+                    <div id="sessions-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分析设置 -->
+        <div class="card" id="analysis-section">
+            <div class="card-header">
+                <span class="icon">🔍</span>
+                <h2>分析设置</h2>
+            </div>
+
+            <div id="analysis-form">
+                <div class="form-group">
+                    <label>目标频道/群组</label>
+                    <input type="text" id="channel-input" placeholder="输入频道用户名或从下方选择">
+                </div>
+
+                <button class="btn btn-secondary" onclick="loadDialogs()" style="margin-bottom: 20px;">
+                    📋 从已加入的频道中选择
+                </button>
+
+                <div id="dialog-list-container" class="hidden">
+                    <div class="dialog-search">
+                        <input type="text" id="dialog-search" placeholder="🔍 搜索频道/群组..." oninput="filterDialogs()">
+                    </div>
+                    <div class="dialog-list" id="dialog-list"></div>
+                </div>
+
+                <!-- 时间范围 -->
+                <div class="form-group">
+                    <label>获取消息时间范围</label>
+                    <div class="time-range-selector">
+                        <button class="time-preset" data-days="3" onclick="selectTimePreset(this)">最近3天</button>
+                        <button class="time-preset active" data-days="7" onclick="selectTimePreset(this)">最近7天</button>
+                        <button class="time-preset" data-days="30" onclick="selectTimePreset(this)">最近30天</button>
+                        <button class="time-preset" data-days="90" onclick="selectTimePreset(this)">最近3个月</button>
+                        <button class="time-preset" data-days="365" onclick="selectTimePreset(this)">最近1年</button>
+                        <button class="time-preset" data-days="0" onclick="selectTimePreset(this)">全部消息</button>
+                        <button class="time-preset" data-days="-1" onclick="selectTimePreset(this)">自定义日期</button>
+                    </div>
+                    <div class="custom-date-range hidden" id="custom-date-range">
+                        <label>从</label>
+                        <input type="date" id="date-from">
+                        <label>到</label>
+                        <input type="date" id="date-to">
+                    </div>
+                    <input type="hidden" id="days-input" value="7">
+                </div>
+
+                <!-- 表情选择器 - 常驻 -->
+                <div class="emoji-selector">
+                    <div class="emoji-selector-header">
+                        <span class="emoji-selector-title">🎭 选择要统计的表情（可多选）</span>
+                        <button class="btn btn-sm btn-outline" onclick="toggleAllEmojis()">全选/取消全选</button>
+                    </div>
+                    <div class="emoji-grid" id="emoji-grid">
+                        <!-- Telegram 支持的所有反应表情 -->
+                        <span class="emoji-option" onclick="toggleEmoji(this)">👍</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">👎</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">❤️</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🔥</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🥰</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">👏</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😁</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤔</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤯</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😱</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤬</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😢</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🎉</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤩</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤮</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">💩</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🙏</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">👌</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🕊</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤡</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🥱</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🥴</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😍</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🐳</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">❤️‍🔥</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🌚</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🌭</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">💯</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤣</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">⚡</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🍌</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🏆</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">💔</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤨</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😐</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🍓</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🍾</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">💋</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🖕</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😈</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😴</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😭</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤓</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">👻</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">👨‍💻</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">👀</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🎃</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🙈</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😇</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😨</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤝</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">✍️</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤗</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🫡</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🎅</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🎄</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">☃️</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">💅</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤪</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🗿</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🆒</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">💘</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🙉</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🦄</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😘</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">💊</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🙊</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😎</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">👾</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤷</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤷‍♂️</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">🤷‍♀️</span>
+                        <span class="emoji-option" onclick="toggleEmoji(this)">😡</span>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 20px;">
+                    <div class="form-group">
+                        <label>最小反应数</label>
+                        <input type="number" id="min-reactions-input" value="5" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>排序方式</label>
+                        <select id="sort-select">
+                            <option value="views" selected>按浏览量</option>
+                            <option value="engagement">按互动率</option>
+                        </select>
+                        <p class="sort-hint hidden" id="sort-hint" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                            💡 已选择表情，将优先按选中表情数量排序
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>消息类型</label>
+                    <select id="media-filter-select">
+                        <option value="all">全部消息</option>
+                        <option value="media">仅包含媒体的消息</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" id="btn-analyze" onclick="startAnalysis()">🚀 开始分析</button>
+            </div>
+
+            <div id="progress-container" class="progress-container hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text" id="progress-text">准备中...</div>
+            </div>
+        </div>
+
+        <!-- 结果 -->
+        <div class="card hidden" id="results-section">
+            <div class="card-header">
+                <span class="icon">📈</span>
+                <h2>分析结果</h2>
+            </div>
+
+            <div class="stats-grid" id="stats-grid"></div>
+
+            <div id="emoji-stats-container">
+                <h3 style="margin-bottom: 10px;">🎭 热门表情</h3>
+                <div class="emoji-stats" id="emoji-stats"></div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3 style="margin-bottom: 10px;">📝 消息列表</h3>
+                <div class="message-list" id="message-list"></div>
+            </div>
+
+            <div class="export-section">
+                <button class="btn btn-success" onclick="exportData('json')">📄 导出 JSON</button>
+            </div>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="card" id="history-section">
+            <div class="card-header">
+                <span class="icon">📂</span>
+                <h2>历史分析记录</h2>
+            </div>
+            <div id="history-list">
+                <p style="color: var(--text-muted);">暂无历史记录</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLoggedIn = false;
+        let analysisData = null;
+        let allDialogs = [];
+        let selectedEmojis = [];
+        let savedResults = JSON.parse(localStorage.getItem('savedResults') || '[]');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkStatus();
+            loadSavedSessions();
+            loadSavedResults();
+            
+            // 设置默认日期
+            const today = new Date().toISOString().split('T')[0];
+            const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
+            document.getElementById('date-to').value = today;
+            document.getElementById('date-from').value = weekAgo;
+            
+            document.getElementById('phone-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendCode();
+            });
+            document.getElementById('code-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') verifyCode();
+            });
+        });
+
+        // 历史记录功能
+        function loadSavedResults() {
+            const container = document.getElementById('history-list');
+            if (!container) return;
+            
+            if (savedResults.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted);">暂无历史记录</p>';
+                return;
+            }
+            
+            container.innerHTML = savedResults.map((r, i) => `
+                <div class="history-item" onclick="loadHistoryResult(${i})">
+                    <div class="history-info">
+                        <span class="history-channel">📢 ${escapeHtml(r.channel)}</span>
+                        <span class="history-date">${new Date(r.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="history-stats">
+                        <span>${r.messageCount} 条消息</span>
+                        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteHistoryResult(${i})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveResult(data, channel) {
+            const result = {
+                channel: channel,
+                timestamp: new Date().toISOString(),
+                messageCount: data.total_count,
+                data: data
+            };
+            savedResults.unshift(result);
+            // 最多保存10条记录
+            if (savedResults.length > 10) {
+                savedResults = savedResults.slice(0, 10);
+            }
+            localStorage.setItem('savedResults', JSON.stringify(savedResults));
+            loadSavedResults();
+        }
+
+        function loadHistoryResult(index) {
+            const result = savedResults[index];
+            if (result && result.data) {
+                showResults(result.data);
+            }
+        }
+
+        function deleteHistoryResult(index) {
+            if (!confirm('确定要删除这条历史记录吗？')) return;
+            savedResults.splice(index, 1);
+            localStorage.setItem('savedResults', JSON.stringify(savedResults));
+            loadSavedResults();
+        }
+
+        function toggleEmoji(el) {
+            el.classList.toggle('selected');
+            updateSelectedEmojis();
+        }
+
+        function updateSelectedEmojis() {
+            selectedEmojis = Array.from(document.querySelectorAll('.emoji-option.selected'))
+                .map(e => e.textContent.trim());
+            
+            // 显示/隐藏排序提示
+            const sortHint = document.getElementById('sort-hint');
+            if (selectedEmojis.length > 0) {
+                sortHint.classList.remove('hidden');
+            } else {
+                sortHint.classList.add('hidden');
+            }
+        }
+
+        function toggleAllEmojis() {
+            const options = document.querySelectorAll('#emoji-grid .emoji-option');
+            const allSelected = Array.from(options).every(o => o.classList.contains('selected'));
+            
+            options.forEach(o => {
+                if (allSelected) {
+                    o.classList.remove('selected');
+                } else {
+                    o.classList.add('selected');
+                }
+            });
+            updateSelectedEmojis();
+        }
+
+        function selectTimePreset(btn) {
+            document.querySelectorAll('.time-preset').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const days = parseInt(btn.dataset.days);
+            document.getElementById('days-input').value = days;
+            
+            const customRange = document.getElementById('custom-date-range');
+            if (days === -1) {
+                customRange.classList.remove('hidden');
+            } else {
+                customRange.classList.add('hidden');
+            }
+        }
+
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                if (data.is_logged_in && data.user) {
+                    showLoggedIn(data.user);
+                } else if (data.awaiting_code) {
+                    showCodeStep();
+                }
+            } catch (e) {
+                console.error('Failed to check status:', e);
+            }
+        }
+
+        async function loadSavedSessions() {
+            try {
+                const res = await fetch('/api/sessions');
+                const data = await res.json();
+                const list = document.getElementById('sessions-list');
+                const container = document.getElementById('saved-sessions');
+                
+                if (data.success && data.sessions.length > 0) {
+                    list.innerHTML = data.sessions.map(s => `
+                        <div class="session-item">
+                            <div class="session-info">
+                                <span>📱</span>
+                                <span>${s.display}</span>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-primary btn-sm" onclick="quickLogin('${s.phone}')">快速登录</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.file}')">删除</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    container.classList.remove('hidden');
+                } else {
+                    container.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error('Failed to load sessions:', e);
+            }
+        }
+
+        async function quickLogin(phone) {
+            document.getElementById('phone-input').value = phone;
+            await sendCode();
+        }
+
+        async function deleteSession(filename) {
+            if (!confirm('确定要删除这个登录记录吗？')) return;
+            try {
+                const res = await fetch('/api/delete_session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: filename })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadSavedSessions();
+                } else {
+                    alert('删除失败: ' + data.error);
+                }
+            } catch (e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+
+        async function sendCode() {
+            const phone = document.getElementById('phone-input').value.trim();
+            if (!phone) { alert('请输入手机号'); return; }
+            const btn = document.getElementById('btn-send-code');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner spinner-sm"></span> 发送中...';
+            try {
+                const res = await fetch('/api/send_code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.already_logged_in) {
+                        showLoggedIn(data.user);
+                    } else {
+                        showCodeStep();
+                    }
+                } else {
+                    alert('发送失败: ' + data.error);
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '📱 发送验证码';
+            }
+        }
+
+        function showCodeStep() {
+            document.getElementById('phone-step').classList.add('hidden');
+            document.getElementById('code-step').classList.remove('hidden');
+            document.getElementById('step-1').classList.remove('active');
+            document.getElementById('step-1').classList.add('completed');
+            document.getElementById('step-2').classList.add('active');
+            document.getElementById('code-input').focus();
+        }
+
+        function resetLogin() {
+            document.getElementById('phone-step').classList.remove('hidden');
+            document.getElementById('code-step').classList.add('hidden');
+            document.getElementById('password-step').classList.add('hidden');
+            document.getElementById('step-1').classList.add('active');
+            document.getElementById('step-1').classList.remove('completed');
+            document.getElementById('step-2').classList.remove('active');
+            document.getElementById('code-input').value = '';
+        }
+
+        async function verifyCode() {
+            const code = document.getElementById('code-input').value.trim();
+            if (!code) { alert('请输入验证码'); return; }
+            const btn = document.getElementById('btn-verify-code');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner spinner-sm"></span> 验证中...';
+            try {
+                const res = await fetch('/api/verify_code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showLoggedIn(data.user);
+                    loadSavedSessions();
+                } else if (data.need_password) {
+                    document.getElementById('code-step').classList.add('hidden');
+                    document.getElementById('password-step').classList.remove('hidden');
+                } else {
+                    alert('验证失败: ' + data.error);
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '✓ 验证登录';
+            }
+        }
+
+        async function verifyPassword() {
+            const password = document.getElementById('password-input').value;
+            if (!password) { alert('请输入密码'); return; }
+            try {
+                const res = await fetch('/api/verify_password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showLoggedIn(data.user);
+                    loadSavedSessions();
+                } else {
+                    alert('验证失败: ' + data.error);
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+            }
+        }
+
+        function showLoggedIn(user) {
+            isLoggedIn = true;
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('logged-in-view').classList.remove('hidden');
+            document.getElementById('user-name').textContent = user.name + (user.username ? ` (@${user.username})` : '');
+            document.getElementById('user-phone').textContent = user.phone ? '+' + user.phone : '';
+            document.querySelectorAll('.login-step').forEach(s => {
+                s.classList.remove('active');
+                s.classList.add('completed');
+            });
+        }
+
+        function switchAccount() { logout(false); }
+
+        async function logout(deleteSession = false) {
+            if (!confirm('确定要退出登录吗？')) return;
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ delete_session: deleteSession })
+                });
+                isLoggedIn = false;
+                document.getElementById('login-view').classList.remove('hidden');
+                document.getElementById('logged-in-view').classList.add('hidden');
+                resetLogin();
+                loadSavedSessions();
+                document.getElementById('results-section').classList.add('hidden');
+            } catch (e) {
+                console.error('Logout error:', e);
+            }
+        }
+
+        async function loadDialogs() {
+            if (!isLoggedIn) { alert('请先登录'); return; }
+            const container = document.getElementById('dialog-list-container');
+            const list = document.getElementById('dialog-list');
+            container.classList.remove('hidden');
+            list.innerHTML = '<div class="spinner"></div>';
+            try {
+                const res = await fetch('/api/dialogs');
+                const data = await res.json();
+                if (data.success) {
+                    allDialogs = data.dialogs;
+                    renderDialogs(allDialogs);
+                } else {
+                    list.innerHTML = '<p style="padding:20px;color:var(--danger);">加载失败: ' + data.error + '</p>';
+                }
+            } catch (e) {
+                list.innerHTML = '<p style="padding:20px;color:var(--danger);">加载失败: ' + e.message + '</p>';
+            }
+        }
+
+        function renderDialogs(dialogs) {
+            const list = document.getElementById('dialog-list');
+            list.innerHTML = dialogs.map(d => {
+                // 优先使用 username，如果没有则使用名称
+                // 后端可以通过名称或 username 来获取频道
+                const displayId = d.username ? '@' + d.username : 'ID: ' + d.id;
+                // 存储完整信息供选择时使用
+                const dialogData = JSON.stringify({username: d.username, id: d.id, name: d.name}).replace(/"/g, '&quot;');
+                return `
+                    <div class="dialog-item" onclick='selectDialogByData(${JSON.stringify({username: d.username, id: d.id, name: d.name})})'>
+                        <span class="dialog-icon">${d.is_channel ? '📢' : '👥'}</span>
+                        <span class="dialog-name">${escapeHtml(d.name)}</span>
+                        <span class="dialog-username">${displayId}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterDialogs() {
+            const query = document.getElementById('dialog-search').value.toLowerCase();
+            const filtered = allDialogs.filter(d => 
+                d.name.toLowerCase().includes(query) || 
+                (d.username && d.username.toLowerCase().includes(query))
+            );
+            renderDialogs(filtered);
+        }
+
+        function selectDialog(identifier) {
+            document.getElementById('channel-input').value = identifier;
+            document.getElementById('dialog-list-container').classList.add('hidden');
+        }
+
+        function selectDialogByData(dialogData) {
+            // 优先使用 username，如果没有则使用名称（后端会用名称搜索）
+            let identifier;
+            if (dialogData.username) {
+                identifier = '@' + dialogData.username;
+            } else {
+                // 使用名称，后端会尝试用名称搜索
+                identifier = dialogData.name;
+            }
+            document.getElementById('channel-input').value = identifier;
+            document.getElementById('dialog-list-container').classList.add('hidden');
+        }
+
+        async function startAnalysis() {
+            if (!isLoggedIn) { alert('请先登录'); return; }
+            const channel = document.getElementById('channel-input').value.trim();
+            if (!channel) { alert('请输入频道'); return; }
+
+            const btn = document.getElementById('btn-analyze');
+            const progressContainer = document.getElementById('progress-container');
+            btn.disabled = true;
+            progressContainer.classList.remove('hidden');
+
+            // 处理时间范围
+            let days = parseInt(document.getElementById('days-input').value);
+            let dateFrom = null, dateTo = null;
+            if (days === -1) {
+                dateFrom = document.getElementById('date-from').value;
+                dateTo = document.getElementById('date-to').value;
+            }
+
+            try {
+                const res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channel: channel,
+                        days: days,
+                        date_from: dateFrom,
+                        date_to: dateTo,
+                        min_reactions: parseInt(document.getElementById('min-reactions-input').value),
+                        media_only: document.getElementById('media-filter-select').value === 'media',
+                        sort_by: document.getElementById('sort-select').value,
+                        emojis: selectedEmojis
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    pollProgress();
+                } else {
+                    alert('启动失败: ' + data.error);
+                    btn.disabled = false;
+                    progressContainer.classList.add('hidden');
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+                btn.disabled = false;
+                progressContainer.classList.add('hidden');
+            }
+        }
+
+        async function pollProgress() {
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const btn = document.getElementById('btn-analyze');
+            const progressContainer = document.getElementById('progress-container');
+            try {
+                const res = await fetch('/api/progress');
+                const data = await res.json();
+                progressFill.style.width = data.progress + '%';
+                progressText.textContent = data.message;
+                if (data.status === 'completed') {
+                    btn.disabled = false;
+                    progressContainer.classList.add('hidden');
+                    // 保存结果到历史记录
+                    const channel = document.getElementById('channel-input').value.trim();
+                    saveResult(data.data, channel);
+                    showResults(data.data);
+                } else if (data.status === 'error') {
+                    btn.disabled = false;
+                    progressContainer.classList.add('hidden');
+                    alert('分析失败: ' + data.message);
+                } else {
+                    setTimeout(pollProgress, 500);
+                }
+            } catch (e) {
+                setTimeout(pollProgress, 1000);
+            }
+        }
+
+        function showResults(data) {
+            const resultsSection = document.getElementById('results-section');
+            resultsSection.classList.remove('hidden');
+            const stats = data.stats;
+            document.getElementById('stats-grid').innerHTML = `
+                <div class="stat-card"><div class="value">${data.total_count}</div><div class="label">消息数量</div></div>
+                <div class="stat-card"><div class="value">${stats.total_reactions}</div><div class="label">总反应数</div></div>
+                <div class="stat-card"><div class="value">${stats.total_views || 0}</div><div class="label">总浏览量</div></div>
+                <div class="stat-card"><div class="value">${stats.avg_reactions.toFixed(1)}</div><div class="label">平均反应</div></div>
+            `;
+            const emojiStats = document.getElementById('emoji-stats');
+            if (stats.reaction_stats && stats.reaction_stats.top_emojis) {
+                emojiStats.innerHTML = stats.reaction_stats.top_emojis.slice(0, 10).map(([emoji, count]) => `
+                    <div class="emoji-stat"><span style="font-size:1.2rem">${emoji}</span><span style="font-weight:600">${count}</span></div>
+                `).join('');
+            }
+            const messageList = document.getElementById('message-list');
+            messageList.innerHTML = data.messages.map((msg, i) => {
+                // 处理新旧链接格式兼容
+                const tgLink = msg.link?.tg_link || msg.link;
+                const webLink = msg.link?.web_link || msg.link;
+                return `
+                <div class="message-item">
+                    <div class="message-rank">#${i + 1}</div>
+                    <div class="message-content">
+                        <div class="message-text">${escapeHtml(msg.text || '[媒体文件]').substring(0, 200)}${msg.text && msg.text.length > 200 ? '...' : ''}</div>
+                        <div class="message-meta">
+                            <span>🔥 ${msg.total_reactions} 反应</span>
+                            ${msg.views ? `<span>👁 ${msg.views} 浏览</span>` : ''}
+                            ${msg.selected_emoji_count ? `<span>🎯 选中表情: ${msg.selected_emoji_count}</span>` : ''}
+                            ${msg.media && msg.media.type ? `<span>📎 ${msg.media.type}</span>` : ''}
+                            <a href="${tgLink}" onclick="openTelegramLink(event, '${tgLink}', '${webLink}')" class="message-link">🔗 在Telegram中打开</a>
+                        </div>
+                        <div class="message-reactions">
+                            ${msg.reactions.map(r => `<span class="reaction-badge">${r.emoji} ${r.count}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function exportData(format) {
+            try {
+                const res = await fetch('/api/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ format: format })
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `top_messages.${format}`;
+                    a.click();
+                } else {
+                    alert('导出失败');
+                }
+            } catch (e) {
+                alert('导出失败: ' + e.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 打开Telegram链接，直接使用深度链接跳转
+        function openTelegramLink(event, tgLink, webLink) {
+            event.preventDefault();
+            // 直接跳转到深度链接，让系统处理
+            window.location.href = tgLink;
+        }
+    </script>
+</body>
+</html>
