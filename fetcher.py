@@ -296,9 +296,9 @@ class TelegramFetcher:
         skipped_no_media = 0
         skipped_out_of_range = 0
         
-        # 创建进度条（如果可用）
+        # 创建进度条（如果可用，且有限制数量时）
         pbar = None
-        if HAS_TQDM:
+        if HAS_TQDM and limit != float('inf'):
             pbar = tqdm(total=limit, desc="获取消息", unit="条")
         
         try:
